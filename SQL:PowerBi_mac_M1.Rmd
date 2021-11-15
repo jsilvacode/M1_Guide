@@ -1,0 +1,132 @@
+---
+title: "SQL/PowerBi_mac_M1"
+author: "Julio Silva"
+date: "11/14/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+<br>
+<h3>Breve guía de instalación de SQL Server y PowerBi para equipos mac con chip Apple Silicon (M1)</h3>  
+
+<br>
+<h4>Primeros Pasos:</h4>
+Si tienes la necesidad de instalar software de terceros y el sistema no permite su instalación, debemos deshabilitar [Gatekeeper].
+<br>
+_"Gatekeeper es una función de seguridad del sistema operativo macOS de Apple. Hace cumplir la firma de código y verifica las aplicaciones descargadas antes de permitir que se ejecuten, lo que reduce la probabilidad de ejecutar malware sin darse cuenta."_ - <https://en.wikipedia.org/wiki/Gatekeeper_(macOS)>
+
+<br>
+<li>Abre una terminal y ejecuta el siguiente comando (al escribir la contraseña no se ven los caractéres, si lo haces correctamente la terminal no enviará ningún mensaje y te devolverá al prompt)</li>
+
+```{r}
+# sudo spctl --master-disable
+```
+
+![](/Users/jsilva/R-Projects/M1_Guide/img/terminal.png)
+<br>
+<br>
+
+<li>Ahora, ve a _Preferencias del Sistema_ > _Seguridad y Privacidad_ > _General_</li>
+<br>
+<li>Presiona sobre el candado en la parte inferior izquierda e ingresa tu contraseña para modificar la configuración.</li>
+<br>
+<li>En la opción _"permitir apps descargadas de"_ selecciona la opción _[cualquier sitio]_</li>
+<br>
+
+![](/Users/jsilva/R-Projects/M1_Guide/img/general.png)
+<br>
+<br>
+<br>
+<h4>Instalación de Azure SQL Edge:</h4>
+Dado que los nuevos SoC M1 de Apple se basan en la arquitectura arm64, no es posible instalar software para intel x86 o x64 ni tampoco utilizar Bootcamp para virtualizar Windows. Es por ello que utilizaremos una imagen de SQL Server llamada Azure SQL Edge la cual ejecutaremos sobre un contenedor Docker ya que Docker actualmente si tiene soporte nativo para los chip apple silicon.
+<br>
+<br>
+<li>Lo primero es descargar e instalar Docker para mac M1, Lo encontraremos en el [siguiente enlace](https://docs.docker.com/desktop/mac/apple-silicon/)</li> 
+<br>
+
+
+![](/Users/jsilva/R-Projects/M1_Guide/img/docker_download.png)
+
+Docker necesita que estés registrado para utilizarlo, para ello puedes crear una cuenta gratuita desde su sitio web. 
+
+Para que el software no propietario de apple funcione correctamente, como es el caso de Docker, debemos tener instalado un _traductor dinámico binario_ para mac llamado _Rosseta_.
+
+![](/Users/jsilva/R-Projects/M1_Guide/img/rosseta.png)
+<br>
+<br>
+Si no lo tienes o no sabes si lo tienes instalado, ejecuta el siguiente comando en una terminal:
+
+```{r}
+# softwareupdate --install-rosetta
+```
+
+<li>Una vez instalados Rosseta y Docker, ejecutaremos en la terminal el siguiente comando con el que instalaremos una imagen de _Azure SQL Edge_ en un contenedor Docker:</li>
+
+```{r}
+# docker run --cap-add SYS_PTRACE -e 'ACCEPT_EULA=1' -e 'MSSQL_SA_PASSWORD=yourStrong(!)Password' -p 1433:1433 --name azuresqledge -d mcr.microsoft.com/azure-sql-edge
+```
+
+
+Lo que hace este comando es establecer ciertos parámetros necesarios para el correcto funcionamiento de SQL Server. Entre otras cosas encontramos la sentencia _-p 1433:1433_ que indica que ese será el puerto predefinido. También está la sentencia _--name azuresqledge_ que le asigna un nombre a la imagen instalada. Finalmente y lo más importante es la sentencia _-e 'MSSQL_SA_PASSWORD=yourStrong(!)Password'_ donde se establece la contraseña de nuestra instancia de SQL Server. Para ello debemos reemplazar el texto _yourStrong(!)Password_ por una contraseña personalizada.
+
+<li>Comprobaremos que la imagen de Azure SQL Edge está correctamente instalada al abrir el Dashboard de Docker:</li>
+
+![](/Users/jsilva/R-Projects/M1_Guide/img/docker_images.png)
+
+<br>
+<br>
+
+<h4>Instalación y configuración de Azure Data Studio:</h4>
+<li>Ahora instalaremos la herramienta para desarrollar y gestionar nuestra bases de datos. En lugar de Sql Server Management Studio utilizaremos Azure Data Studio, software compatible con sistemas los chip M1 de Apple, el que encontramos en el [siguiente enlace](https://docs.microsoft.com/en-us/sql/azure-data-studio/download-azure-data-studio?view=sql-server-ver15)</li> 
+
+![](/Users/jsilva/R-Projects/M1_Guide/img/descarga_azureds.png)
+<br>
+<br>
+
+<li>Después de la instalación de _Azure Data Studio_ debemos iniciar nuestra imagen de SQL Edge en Docker, tal como se ve en la imagen:</li>
+
+<br>
+
+![](/Users/jsilva/R-Projects/M1_Guide/img/docker_container.png)
+<br>
+<br>
+
+<li>Una vez iniciada la imagen de SQL Edge en Docker, abrimos _Azure Data Studio_ y seleccionamos _Create a connection_</li>
+
+<br>
+
+![](/Users/jsilva/R-Projects/M1_Guide/img/create_connection.png)
+<br>
+<br>
+
+<li>En la pestaña _Connection Details_ establecemos los parámetros para nuestra conexión, tal como se ve en la imagen</li>
+
+<br>
+
+![](/Users/jsilva/R-Projects/M1_Guide/img/connection_config.png)
+
+<br>
+<br>
+Los parámetros de conexión son los siguientes:
+<li>Connection type = Microsoft SQL Server</li>
+<li>Server = 127.0.0.1</li>
+<li>Authentication type = SQL Login</li>
+<li>User name = sa (usuario por defecto)</li>
+<li>Password = establecida al momento de instalar SQL Edge</li>
+<br>
+
+Al ingresar correctamente la información, deberiamos avanzar a la ventana donde gestionamos nuestro servidor de bases de datos:
+
+<br>
+<br>
+
+![](/Users/jsilva/R-Projects/M1_Guide/img/connection_ok.png)
+<br>
+<br>
+<br>
+
+<h5>Una vez hecho todo lo anterior, solamente resta instalar Parallels y Windows 11 arm64 para luego descargar y ejecutar PowerBi como lo haríamos en cualquier equipo con Windows</h5>
+<br>
+_Esta guía se irá actualizando para incorporar o mejorar los pasos de instalación hasta dejar Parallels y Windows configurados_  
